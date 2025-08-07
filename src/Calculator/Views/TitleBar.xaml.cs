@@ -1,3 +1,9 @@
+using Windows.UI.Xaml.Input;
+using Windows.Foundation;
+using Windows.UI.Popups;
+using System;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
 using CalculatorApp.ViewModel.Common;
 
 using Windows.ApplicationModel.Core;
@@ -12,6 +18,75 @@ using Windows.UI.Xaml.Controls;
 namespace CalculatorApp
 {
     public sealed partial class TitleBar : UserControl
+        private DateTime _lastAppIconTap = DateTime.MinValue;
+        private const int DoubleTapMilliseconds = 400;
+        // Handle single and double click on AppIcon
+        private void AppIcon_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            // Single tap: show system menu
+            ShowSystemMenu();
+        }
+
+        private void AppIcon_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        {
+            // Double tap: close window
+            CloseWindow();
+        }
+
+        private void AppIcon_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            // Prevent default to avoid event bubbling
+            e.Handled = true;
+        }
+
+        private void ShowSystemMenu()
+        {
+            // Get the window handle (HWND) and show the system menu at the app icon location
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(Window.Current.CoreWindow);
+            if (hwnd == IntPtr.Zero)
+                return;
+
+            // Get the position of the AppIcon relative to the screen
+            var transform = AppIcon.TransformToVisual(Window.Current.Content as UIElement);
+            var point = transform.TransformPoint(new Point(0, AppIcon.ActualHeight));
+            var screenPoint = AppIcon.PointToScreen(point);
+
+            // Show the system menu using Win32 API
+            NativeMethods.ShowSystemMenu(hwnd, (int)screenPoint.X, (int)screenPoint.Y);
+        }
+
+        private void CloseWindow()
+        {
+            // Close the window using CoreApplication
+            Windows.ApplicationModel.Core.CoreApplication.Exit();
+        }
+
+        // Native interop for system menu
+        private static class NativeMethods
+        {
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern int TrackPopupMenuEx(IntPtr hMenu, uint uFlags, int x, int y, IntPtr hWnd, IntPtr lpTPMParams);
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+            public const uint TPM_LEFTALIGN = 0x0000;
+            public const uint TPM_RETURNCMD = 0x0100;
+            public const uint WM_SYSCOMMAND = 0x0112;
+
+            public static void ShowSystemMenu(IntPtr hwnd, int x, int y)
+            {
+                var hMenu = GetSystemMenu(hwnd, false);
+                int cmd = TrackPopupMenuEx(hMenu, TPM_LEFTALIGN | TPM_RETURNCMD, x, y, hwnd, IntPtr.Zero);
+                if (cmd != 0)
+                {
+                    PostMessage(hwnd, WM_SYSCOMMAND, (IntPtr)cmd, IntPtr.Zero);
+                }
+            }
+        }
     {
         public TitleBar()
         {
