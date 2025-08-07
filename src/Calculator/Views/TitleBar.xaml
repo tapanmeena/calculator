@@ -61,7 +61,10 @@
                            Margin="16,0,0,0"
                            VerticalAlignment="Center"
                            AutomationProperties.AccessibilityView="Raw"
-                           Source="ms-appx:///Assets/CalculatorAppList.png"/>
+                           Source="ms-appx:///Assets/CalculatorAppList.png"
+                           PointerPressed="AppIcon_PointerPressed"
+                           DoubleTapped="AppIcon_DoubleTapped"
+                           Tapped="AppIcon_Tapped"/>
                     <TextBlock x:Name="AppName"
                                x:Uid="AppName"
                                Grid.Column="1"
